@@ -1,0 +1,53 @@
+import os
+import shutil
+
+# Main folder jisme multiple folders hain
+source_folder = r"D:\Your_Main_Folder"
+
+# Jahan sari PDFs collect karni hain
+destination_folder = os.path.join(source_folder, "All_PDFs")
+
+# Destination folder create karo
+os.makedirs(destination_folder, exist_ok=True)
+
+# Duplicate PDF ke liye counter
+count = 0
+
+# Main folder ke andar sabhi folders/files scan karo
+for root, dirs, files in os.walk(source_folder):
+
+    # All_PDFs folder ko dobara scan nahi karna
+    if os.path.abspath(root) == os.path.abspath(destination_folder):
+        continue
+
+    for file in files:
+
+        if file.lower().endswith(".pdf"):
+
+            source_file = os.path.join(root, file)
+            destination_file = os.path.join(destination_folder, file)
+
+            # Agar same naam ki PDF already hai
+            if os.path.exists(destination_file):
+
+                base, ext = os.path.splitext(file)
+                i = 1
+
+                while os.path.exists(
+                    os.path.join(destination_folder, f"{base}_{i}{ext}")
+                ):
+                    i += 1
+
+                destination_file = os.path.join(
+                    destination_folder,
+                    f"{base}_{i}{ext}"
+                )
+
+            shutil.copy2(source_file, destination_file)
+
+            count += 1
+            print("Copied:", source_file)
+
+print("\nCompleted!")
+print("Total PDFs copied:", count)
+print("PDF folder:", destination_folder)
