@@ -1,0 +1,41 @@
+def check_login(user, code, ip_add, level):
+    global level_add
+
+    try:
+        print("1. Button clicked")
+
+        username = user.get()
+        password = code.get()
+        ip = ip_add.get()
+        lvl = level.get()
+
+        print("2. Username:", username)
+        print("3. IP:", ip)
+        print("4. Level:", lvl)
+        print("5. Calling login.login()...")
+
+        c = login.login(username, password, ip)
+
+        print("6. Login success")
+
+        name = username
+        level_add = lvl
+
+        print("7. Calling generate_pdf()...")
+
+        generate_pdf(c, name)
+
+        print("8. generate_pdf completed")
+
+    except Exception as ex:
+        import traceback
+
+        print("===== ERROR =====")
+        print(type(ex).__name__)
+        print(str(ex))
+        traceback.print_exc()
+
+        messagebox.showerror(
+            "Error",
+            f"{type(ex).__name__}\n\n{str(ex)}"
+        )
