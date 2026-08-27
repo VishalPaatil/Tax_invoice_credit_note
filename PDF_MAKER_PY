@@ -1,0 +1,201 @@
+# this program will replace text in word file depending upon format of text
+#post that save it in new word file and convert it to pdf and delete previous word file
+
+from docx2pdf import convert
+from docx import Document
+import os
+
+
+parent_dir = ''
+#this function replace word file data with database data and save it as word file.
+def write_word(df,path,parent_dir,template_dir,type):
+    for i in range(len(df)):
+        if type == 'tax':
+            if df.loc[i,"INVCTYP"] == 'B2B':
+                doc = Document(template_dir+"\Tax_invoice_B2B.docx")
+            elif df.loc[i,"INVCTYP"] == 'B2C':
+                doc = Document(template_dir+"\Tax_invoice_B2C.docx")  
+        elif type == 'credit':
+            if df.loc[i,"INVCTYP"] == 'B2B':
+                doc = Document(template_dir+"\Credit_note_B2B.docx")
+            elif df.loc[i,"INVCTYP"] == 'B2C':
+                doc = Document(template_dir+"\Credit_note_B2C.docx")         
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        if '<mph_name>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<mph_name>", df.loc[i,"POLNAME"])
+                            #print(df.loc[i,"LGIVNAME"],i)
+                        if '<address>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<address>", df.loc[i,"CLTADDR01"].rstrip()+' ,'+df.loc[i,"CLTADDR02"].rstrip()+' ,'+df.loc[i,"CLTADDR03"].rstrip()+' ,'+df.loc[i,"CLTADDR04"].rstrip()+' ,'+df.loc[i,"CLTADDR05"].rstrip())
+                        if '<mph>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<mph>", df.loc[i,"CHDRNUM"])
+                        if '<entity>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<entity>", df.loc[i,"SUBSNUM"])
+                        if '<mbrname>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<mbrname>", df.loc[i,"MEMBERNAME"])
+
+                        if '<jlname>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<jlname>", df.loc[i,"MEMBRNM01"])
+                        if '<rltdinvoice>' in paragraph.text:
+                            if type == 'credit':
+                                if df.loc[i, "INVCTYP"] == 'B2C':
+                                    paragraph.text = paragraph.text.replace("<rltdinvoice>", str(int(df.loc[i, "GLINVNUM01"])))
+                        if '<billnum>' in paragraph.text:
+                            if type == 'credit':
+                                if df.loc[i, "INVCTYP"] == 'B2C':
+                                    paragraph.text = paragraph.text.replace("<billnum>", str(int(df.loc[i, "BILLNO"])))
+                            if type == 'tax':
+                                if df.loc[i, "INVCTYP"] == 'B2C':
+                                    paragraph.text = paragraph.text.replace("<billnum>", str(int(df.loc[i, "BILLNO"])))
+                        if '<gstn>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<gstn>", df.loc[i,"ZGSTINNO"])
+                        if '<pan>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<pan>", df.loc[i,"ZPANIDNO"])     
+                        if '<product>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<product>", df.loc[i,"PRODDESCN"])
+                        if '<description>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<description>", df.loc[i,"DESCNOFSRC"])
+                        if '<batchdate>' in paragraph.text:
+                            if type == 'credit':
+                                paragraph.text = paragraph.text.replace("<batchdate>", date_format(str(int(df.loc[i,"TRANDATE"]))))   
+                            if type == 'tax':
+                                paragraph.text = paragraph.text.replace("<batchdate>", date_format(str(int(df.loc[i,"GLINVDATE"]))))
+                        if '<startdate>' in paragraph.text:
+                            if type == 'credit':
+                                if df.loc[i,"INVCTYP"] == 'B2B':
+                                    paragraph.text = paragraph.text.replace("<startdate>", date_format(str(int(df.loc[i,"CCDATE"]))))
+                            if type == 'credit':
+                                if df.loc[i,"INVCTYP"] == 'B2C':
+                                    paragraph.text = paragraph.text.replace("<startdate>", date_format(str(int(df.loc[i,"DTEATT"]))))
+                            if type == 'tax':
+                                if df.loc[i,"INVCTYP"] == 'B2B':
+                                    paragraph.text = paragraph.text.replace("<startdate>", date_format(str(int(df.loc[i,"CCDATE"]))))  
+                            if type == 'tax':
+                                if df.loc[i,"INVCTYP"] == 'B2C':
+                                    paragraph.text = paragraph.text.replace("<startdate>", date_format(str(int(df.loc[i,"RSSTDT"]))))          
+                        if '<end date>' in paragraph.text:
+                            if type == 'credit':
+                                if df.loc[i,"INVCTYP"] == 'B2B':
+                                    paragraph.text = paragraph.text.replace("<end date>", date_format(str(int(df.loc[i,"CRDATE"]))))
+                            if type == 'credit':
+                                if df.loc[i,"INVCTYP"] == 'B2C':
+                                    paragraph.text = paragraph.text.replace("<end date>", date_format(str(int(df.loc[i,"DTETRM"]))))
+                            if type == 'tax':
+                                if df.loc[i,"INVCTYP"] == 'B2B':
+                                    paragraph.text = paragraph.text.replace("<end date>", date_format(str(int(df.loc[i,"CRDATE"]))))  
+                            if type == 'tax':
+                                if df.loc[i,"INVCTYP"] == 'B2C':
+                                    paragraph.text = paragraph.text.replace("<end date>", date_format(str(int(df.loc[i,"RSENDT"]))))    
+                        if '<batchno>' in paragraph.text:
+                            if type == 'credit':
+                                if df.loc[i,"INVCTYP"] == 'B2B':
+                                       paragraph.text = paragraph.text.replace("<batchno>", str(int(df.loc[i,"BILLNO"])))
+                            if type == 'tax':
+                                if df.loc[i,"INVCTYP"] == 'B2B':
+                                       paragraph.text = paragraph.text.replace("<batchno>", str(int(df.loc[i,"BILLNO"])))
+                            if type == 'credit':
+                                if df.loc[i,"INVCTYP"] == 'B2C':
+                                       paragraph.text = paragraph.text.replace("<batchno>", str(int(df.loc[i,"CRDTNO"])))
+                            if type == 'tax':
+                                if df.loc[i,"INVCTYP"] == 'B2C':
+                                       paragraph.text = paragraph.text.replace("<batchno>", str(int(df.loc[i,"GLINVNUM"])))
+                        if '<bprem>' in paragraph.text:
+                            if type == 'credit':
+                                paragraph.text = paragraph.text.replace("<bprem>", '{0:,.2f}'.format(df.loc[i,"PREM"]))
+                            if type == 'tax':
+                                paragraph.text = paragraph.text.replace("<bprem>", '{0:,.2f}'.format(df.loc[i,"PPREM"]))    
+                        if '<rprem>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<rprem>", '{0:,.2f}'.format(df.loc[i,"ZRIDRPRM"]))
+                        if '<cgst>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<cgst>", '{0:,.2f}'.format(df.loc[i,"ZCGSTAMT"]))
+                        if '<sgst>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<sgst>", '{0:,.2f}'.format(df.loc[i,"ZSGSTAMT"]))
+                        if '<igst>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<igst>", '{0:,.2f}'.format(df.loc[i,"ZIGSTAMT"]))
+                        if '<cgstp>%' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<cgstp>%", '{0:,.2f}'.format(df.loc[i,"ZCGSTRATE"])+'%')
+                            #print('{0:,.2f}'.format(df.loc[i,"ZCGSTRATE"])+'%')
+                        if '<sgstp>%' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<sgstp>%", '{0:,.2f}'.format(df.loc[i,"ZSGSTRATE"])+'%')
+                            #print('{0:,.2f}'.format(df.loc[i,"ZSGSTRATE"])+'%')
+                        if '<igstp>%' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<igstp>%", '{0:,.2f}'.format(df.loc[i,"ZIGSTRATE"])+'%')
+                            #print('{0:,.2f}'.format(df.loc[i,"ZIGSTRATE"])+'%')
+                        if '<total>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<total>", '{0:,.2f}'.format(df.loc[i,"ZTPRMGST"]))
+                        if '<lutno>' in paragraph.text:
+                            paragraph.text = paragraph.text.replace("<lutno>", df.loc[i,"LUTNO"])                
+        if type == 'tax':
+            if df.loc[i,"INVCTYP"] == 'B2B':
+                if df["SUBSNUM"][i] == ' ':
+                    file_name= df["CHDRNUM"][i]+'_'+str(int(df.loc[i,"BILLNO"]))+'_Tax_invoice_B2B'
+                else:
+                    file_name= df["CHDRNUM"][i]+'_'+df["SUBSNUM"][i]+'_'+str(int(df.loc[i,"BILLNO"]))+'_Tax_invoice_B2B'
+
+            elif df.loc[i,"INVCTYP"] == 'B2C':
+ #               if df["SUBSNUM"][i] == ' ':
+                    file_name= df["CHDRNUM"][i]+'_'+str(int(df.loc[i,"BILLNO"]))+'_'+str((df.loc[i,"MBRNO"]))+'_'+str((df.loc[i,"DPNTNO"]))+'_Tax_invoice_B2C'
+ #      else:
+ #                  file_name= df["CHDRNUM"][i]+'_'+df["SUBSNUM"][i]+'_'+str(int(df.loc[i,"BILLNO"]))+'_'+str(int(df.loc[i,"MBRNO"]))+'_'+str(int(df.loc[i,"DPNTNO"]))+'_Tax_invoice_B2C'     
+        elif type == 'credit':
+            if df.loc[i,"INVCTYP"] == 'B2B':
+                if df["SUBSNUM"][i] == ' ':
+                    file_name= df["CHDRNUM"][i]+'_'+str(int(df.loc[i,"BILLNO"]))+'_Credit_note_B2B'
+                else:
+                    file_name= df["CHDRNUM"][i]+'_'+df["SUBSNUM"][i]+'_'+str(int(df.loc[i,"BILLNO"]))+'_Credit_note_B2B'    
+            elif df.loc[i,"INVCTYP"] == 'B2C':
+  #              if df["SUBSNUM"][i] == ' ':
+                      file_name= df["CHDRNUM"][i]+'_'+str(int(df.loc[i,"BILLNO"]))+'_'+str((df.loc[i,"MBRNO"]))+'_'+str((df.loc[i,"DPNTNO"]))+'_Credit_note_B2C'  
+  #                   file_name= df["CHDRNUM"][i]+'_'+(df.loc[i,"BILLNO"])+'_'+str(int(df.loc[i,"MBRNO"]))+'_'+str(int(df.loc[i,"DPNTNO"]))+'_Credit_note_B2C'
+  #             else:
+  #                 file_name= df["CHDRNUM"][i]+'_'+df["SUBSNUM"][i]+'_'+str(int(df.loc[i,"BILLNO"]))+'_'+str(int(df.loc[i,"MBRNO"]))+'_'+str(int(df.loc[i,"DPNTNO"]))+'_Credit_note_B2C'             
+        
+        file_docx ='/'+file_name+'.docx'
+        file_pdf=file_name+'.pdf'
+        i=1
+        #print(os.getcwd())
+        os.chdir(path)
+        while os.path.exists(file_pdf):
+            file_pdf=file_name+'_'+str(i)+'.pdf'
+            file_docx='_'+file_name+'_'+str(i)+'.docx'
+            i=i+1    
+        os.chdir(parent_dir)
+        doc.save(path+file_docx)
+
+        #print(os.getcwd())
+        convert_to_pdf(path,parent_dir)
+        delete_word(path,parent_dir) 
+        
+    #print(df)
+#this function perform date converion to get date in required format   
+def date_format(d):
+     year = d[0:4]
+     month = d[4:6]
+     day = d[6:8]
+     #print(day+'-'+month+'-'+year)
+     return(day+'-'+month+'-'+year)
+
+#this function convert word file to pdf
+def convert_to_pdf(path,parent_dir):
+    #os.chdir(path)
+    convert(path)
+    #files = [f for f in os.listdir('.') if os.path.isfile(f)]
+    #for f in files:
+    #    fbasename = os.path.splitext(os.path.basename(f))[0]
+    #    if f.endswith('.docx'):
+    #        convert(f, os.path.realpath('.') + '/' + fbasename + '.pdf')
+            #convert("pdf/")            
+    
+    #os.chdir(parent_dir)
+
+#this function delete word file
+def delete_word(path,parent_dir):
+    os.chdir(path)
+    files = [f for f in os.listdir('.') if os.path.isfile(f)]
+    for f in files:
+        fbasename = os.path.splitext(os.path.basename(f))[0]
+        if f.endswith('.docx'):
+            os.remove(f)
+    os.chdir(parent_dir)        
