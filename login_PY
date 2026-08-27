@@ -1,0 +1,37 @@
+# this program is used for login in group asia, it will validate credential and fetch data from files
+
+import pyodbc
+print (pyodbc.drivers())
+import pandas as pd
+
+
+#this function check credential, if wrong credential are present it will throw error
+def login(username,password,ip_address):
+    print("Enter in mod login")
+    connection = pyodbc.connect(
+    driver='{iSeries Access ODBC Driver}',
+    system=ip_address,
+    uid=username,
+    pwd=password,
+    timeout=5)
+ 
+    #uid='CSCSAG',
+    #pwd='CSC545')
+    return connection
+
+#this function return data as dataframe , it extract data from temprory file    
+def get_data(connection,schedule_number,level):
+    
+    c1 = connection.cursor()
+    #query = 'select * from fggdevdta.ztinpf where JOBNAME_NUMBER ={}'.format(schedule_number)
+    query = 'select * from {}.ZTX2TX{}'.format(level,schedule_number)
+    #print(query)
+    data = c1.execute(query).fetchall()
+    df = pd.DataFrame.from_records(data, columns=[col[0] for col in c1.description],coerce_float=True)
+    query1 = 'select * from {}.ZCR3TX{}'.format(level,schedule_number)
+    data1 = c1.execute(query1).fetchall()
+    df1 = pd.DataFrame.from_records(data1, columns=[col[0] for col in c1.description],coerce_float=True)
+    
+    return df,df1
+
+#get_data(login("G1133147","G1133147"),"0026")
